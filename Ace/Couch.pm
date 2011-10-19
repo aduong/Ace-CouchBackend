@@ -7,6 +7,7 @@ use JSON;
 use URI::Escape;
 use Carp qw(croak);
 use LWP::UserAgent;
+use Ace::Object;
 
 sub connect { # only supports multi-arg form
     my $class = shift;
@@ -15,9 +16,10 @@ sub connect { # only supports multi-arg form
     my %args = @_;
     my $couch = $args{-couch} // {};
 
-    $couch->{host} //= 'localhost';
-    $couch->{port} //= 5984;
-    $couch->{db}   //= 'ace';
+    $couch->{host}       //= 'localhost';
+    $couch->{port}       //= 5984;
+    $couch->{db}         //= 'ace';
+    $couch->{serializer} //= eval { require Ace::Couch::jace; 'Ace::Couch::jace' };
 
     $self->{couch} = $couch;
     $self->{agent} = LWP::UserAgent->new(agent => 'WormBase2-Couch/1.0');
@@ -64,15 +66,31 @@ sub _get_obj {
     my $couch = $self->{couch};
     my $url = "http://$couch->{host}:$couch->{port}/$couch->{db}/"
             . uri_escape("${class}_${name}");
+
     my $res = $self->{agent}->get($url);
     if (!$res->is_success) {
         return;
     }
 
-    my $obj = Ace::Object->newFromText(decode_json($res->content)->{Body}, $self)
+    my $content = decode_json($res->content)->{Body};
+    my $obj = $couch->{serializer}->deserialize($content, $self)
         or die "Object could not be fetched";
 
     return $obj;
+}
+
+package Ace::Couch::jace;
+
+sub new {
+    return __PACKAGE__;
+}
+
+sub serialize {
+    die "Not a real serializer!\n";
+}
+
+sub deserialize {
+    return Ace::Object->newFromText(@_);
 }
 
 1;
