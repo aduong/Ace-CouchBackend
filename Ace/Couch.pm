@@ -19,7 +19,7 @@ sub connect { # only supports multi-arg form
     $couch->{host}       //= 'localhost';
     $couch->{port}       //= 5984;
     $couch->{db}         //= 'ace';
-    $couch->{serializer} //= eval { require Ace::Couch::jace; 'Ace::Couch::jace' };
+    $couch->{serializer} //= 'Ace::Couch::jace' ;
 
     $self->{couch} = $couch;
     $self->{agent} = LWP::UserAgent->new(agent => 'WormBase2-Couch/1.0');
@@ -65,7 +65,7 @@ sub _get_obj {
 
     my $couch = $self->{couch};
     my $url = "http://$couch->{host}:$couch->{port}/$couch->{db}/"
-            . uri_escape("${class}_${name}");
+            . uri_escape(uri_escape("${class}_${name}"));
 
     my $res = $self->{agent}->get($url);
     if (!$res->is_success) {
@@ -74,7 +74,7 @@ sub _get_obj {
 
     my $content = decode_json($res->content)->{Body};
     my $obj = $couch->{serializer}->deserialize($content, $self)
-        or die "Object could not be fetched";
+        or die "Object could not be fetched/deserialized";
 
     return $obj;
 }
@@ -90,6 +90,7 @@ sub serialize {
 }
 
 sub deserialize {
+    my $self = shift;
     return Ace::Object->newFromText(@_);
 }
 
