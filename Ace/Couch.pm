@@ -3,7 +3,7 @@ package Ace::Couch;
 use strict;
 use warnings;
 use parent 'Ace';
-use JSON;
+use JSON::XS;
 use URI::Escape;
 use Carp qw(croak);
 use LWP::UserAgent;
@@ -72,9 +72,18 @@ sub _get_obj {
         return;
     }
 
-    my $content = decode_json($res->content)->{Body};
-    my $obj = $couch->{serializer}->deserialize($content, $self)
-        or die "Object could not be fetched/deserialized";
+    my $content = eval { decode_json($res->content) };
+    if (!defined $content) {
+        $self->error('JSON decode error: ' . $@);
+        return;
+    }
+    elsif ($content->{error}) {
+        $self->error("CouchDB error: $content->{error}, $content->{reason}");
+        return;
+    }
+
+    my $obj = $couch->{serializer}->deserialize($content->{Body}, $self)
+        or $self->error('Could not deserialize object');
 
     return $obj;
 }
