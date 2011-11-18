@@ -3,7 +3,7 @@ package Ace::Couch;
 use strict;
 use warnings;
 use parent 'Ace';
-use JSON::XS;
+use JSON;
 use URI::Escape;
 use Carp qw(croak);
 use LWP::UserAgent;
@@ -11,7 +11,7 @@ use Ace::Object;
 
 sub connect { # only supports multi-arg form
     my $class = shift;
-    my $self = $class->SUPER::connect(@_);
+    my $self = $class->SUPER::connect(@_) or die;
 
     my %args = @_;
     my $couch = $args{-couch} // {};
@@ -22,7 +22,10 @@ sub connect { # only supports multi-arg form
     $couch->{serializer} //= 'Ace::Couch::jace' ;
 
     $self->{couch} = $couch;
-    $self->{agent} = LWP::UserAgent->new(agent => 'WormBase2-Couch/1.0');
+    $self->{agent} = LWP::UserAgent->new(
+        agent      => 'WormBase2-Couch/1.0',
+        keep_alive => 10,
+    );
 
     return $self;
 }
@@ -69,6 +72,7 @@ sub _get_obj {
 
     my $res = $self->{agent}->get($url);
     if (!$res->is_success) {
+        $self->error('HTTP error: ' . $res->status_line);
         return;
     }
 
