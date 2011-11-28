@@ -2101,8 +2101,8 @@ sub split {
   $text =~ s/\\t/\t/g;
   my ($id,$ts);
   ($class,$id,$ts) = $text=~m/^\?(.+)(?<!\\)\?(.+)(?<!\\)\?([^?]*)$/s;
-  $class ||= '';  # fix uninitialized variable warnings
-  $id    ||= '';
+  $class //= '';  # fix uninitialized variable warnings
+  $id    //= '';
   $class =~ s/\\\?/?/g;
   $id =~  s/\\\?/?/g;
   return ($class,$id) unless $ts;
