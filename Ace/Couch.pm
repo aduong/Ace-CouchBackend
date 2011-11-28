@@ -18,7 +18,7 @@ sub connect { # only supports multi-arg form
 
     $couch->{host}       //= 'localhost';
     $couch->{port}       //= 5984;
-    $couch->{db}         //= 'ace';
+    $couch->{db}         //= $couch->{database} // 'ace';
     $couch->{serializer} //= 'Ace::Couch::jace' ;
 
     $self->{couch} = $couch;
@@ -57,6 +57,9 @@ sub get {
 
         return $obj;
     }
+    else {
+        warn $self->error;
+    }
 
     # Ace.pm fallback (will handle caching as well)
     return $self->_acedb_get($class, $name, $fill);
@@ -72,7 +75,7 @@ sub _get_obj {
 
     my $res = $self->{agent}->get($url);
     if (!$res->is_success) {
-        $self->error('HTTP error: ' . $res->status_line);
+        $self->error('HTTP error ' . $url . ':' . $res->status_line);
         return;
     }
 
